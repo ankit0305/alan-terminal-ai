@@ -12,6 +12,9 @@ from alan_assistant import AlanAssistant
 
 
 def main():
+    """
+    main function
+    """
     alan = AlanAssistant()
 
     if len(sys.argv) < 2:
@@ -40,7 +43,8 @@ def main():
         alan.show_help()
         sys.exit(0)
     elif sys.argv[3] in version_commands:
-        print(f"Alan Terminal Assistant v1.0 - Running on {alan.os_info['name']}")
+        print(
+            f"Alan Terminal Assistant v1.0 - Running on {alan.os_info['name']}")
         sys.exit(0)
 
     # Check if first argument is "alan please"
@@ -64,23 +68,26 @@ def main():
         sys.exit(1)
 
     # Try models in order of preference
-    models_to_try = ["qwen2.5:0.5b", "llama3.2", "gemma3:270m", "codellama", "mistral"]
+    models_to_try = ["qwen2.5:0.5b", "llama3.2",
+                     "gemma3:270m", "codellama", "mistral"]
     model = None
 
     try:
-        result = subprocess.run(["ollama", "list"], capture_output=True, text=True)
+        result = subprocess.run(
+            ["ollama", "list"], capture_output=True,
+                   check=False, text=True)
         available_models = result.stdout.lower()
 
         for m in models_to_try:
             if m in available_models:
                 model = m
                 break
-    except:
+    except Exception:
         model = "qwen2.5:0.5b"  # fallback
 
     if not model:
         print("❌ No compatible models found. Please install a model:", file=sys.stderr)
-        print(f"ollama pull qwen2.5:0.5b", file=sys.stderr)
+        print("ollama pull qwen2.5:0.5b", file=sys.stderr)
         sys.exit(1)
 
     print(f"🔍 Using model: {model}")

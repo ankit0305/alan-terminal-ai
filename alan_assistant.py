@@ -1,12 +1,19 @@
+"""
+alan assistant
+"""
+
+import platform
 import subprocess
 import sys
-import platform
-from alan_config import AlanConfig
-
 
 class AlanAssistant:
+    """
+    Alan assistant
+    """
     def __init__(self):
-        self.config = AlanConfig()
+        """
+        init
+        """
         self.last_command = None
         self.last_output = None
         self.clipboard_content = None
@@ -31,31 +38,41 @@ class AlanAssistant:
             try:
                 # Check for different package managers
                 if (
-                    subprocess.run(["which", "apt"], capture_output=True).returncode
+                    subprocess.run(["which", "apt"],
+                                   capture_output=True,
+                   check=False).returncode
                     == 0
                 ):
                     package_manager = "apt"
                 elif (
-                    subprocess.run(["which", "yum"], capture_output=True).returncode
+                    subprocess.run(["which", "yum"],
+                                   capture_output=True,
+                   check=False).returncode
                     == 0
                 ):
                     package_manager = "yum"
                 elif (
-                    subprocess.run(["which", "dnf"], capture_output=True).returncode
+                    subprocess.run(["which", "dnf"],
+                                   capture_output=True,
+                   check=False).returncode
                     == 0
                 ):
                     package_manager = "dnf"
                 elif (
-                    subprocess.run(["which", "pacman"], capture_output=True).returncode
+                    subprocess.run(["which", "pacman"],
+                                   capture_output=True,
+                   check=False).returncode
                     == 0
                 ):
                     package_manager = "pacman"
                 elif (
-                    subprocess.run(["which", "zypper"], capture_output=True).returncode
+                    subprocess.run(["which", "zypper"],
+                                   capture_output=True,
+                   check=False).returncode
                     == 0
                 ):
                     package_manager = "zypper"
-            except:
+            except Exception:
                 pass
 
             return {
@@ -83,7 +100,8 @@ class AlanAssistant:
         """Check if Ollama is running and accessible."""
         try:
             result = subprocess.run(
-                ["ollama", "list"], capture_output=True, text=True, timeout=10
+                ["ollama", "list"], capture_output=True,
+                   check=False, text=True, timeout=10
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -115,6 +133,7 @@ Command:"""
             result = subprocess.run(
                 ["ollama", "generate", model, prompt],
                 capture_output=True,
+                   check=False,
                 text=True,
                 timeout=30,
             )
@@ -122,7 +141,8 @@ Command:"""
             if result.returncode == 0 and result.stdout.strip():
                 command = result.stdout.strip()
                 # Clean up the response
-                lines = [line.strip() for line in command.split("\n") if line.strip()]
+                lines = [line.strip()
+                         for line in command.split("\n") if line.strip()]
                 if lines:
                     # Get the first non-empty line that looks like a command
                     for line in lines:
@@ -137,13 +157,15 @@ Command:"""
             result = subprocess.run(
                 ["ollama", "run", model, prompt],
                 capture_output=True,
+                   check=False,
                 text=True,
                 timeout=30,
             )
 
             if result.returncode == 0 and result.stdout.strip():
                 command = result.stdout.strip()
-                lines = [line.strip() for line in command.split("\n") if line.strip()]
+                lines = [line.strip()
+                         for line in command.split("\n") if line.strip()]
                 if lines:
                     for line in lines:
                         line = line.replace("`", "").strip()
@@ -208,12 +230,14 @@ Command:"""
             if self.os_info["type"] == "windows":
                 # On Windows, use shell=True with cmd
                 result = subprocess.run(
-                    command, shell=True, capture_output=True, text=True, timeout=30
+                    command, shell=True, capture_output=True,
+                   check=False, text=True, timeout=30
                 )
             else:
                 # On Unix-like systems
                 result = subprocess.run(
-                    command, shell=True, capture_output=True, text=True, timeout=30
+                    command, shell=True, capture_output=True,
+                   check=False, text=True, timeout=30
                 )
 
             output = ""
@@ -246,7 +270,8 @@ Command:"""
 
                 if not lines:
                     print("❌ No output found in output.txt")
-                    print("💡 Usage: 'alan copy [command]' to run and copy a command")
+                    print(
+                        "💡 Usage: 'alan copy [command]' to run and copy a command")
                     return False
 
                 # Get the last non-empty line
@@ -280,11 +305,13 @@ Command:"""
         try:
             if self.os_info["type"] == "windows":
                 result = subprocess.run(
-                    command, shell=True, capture_output=True, text=True, timeout=30
+                    command, shell=True, capture_output=True,
+                   check=False, text=True, timeout=30
                 )
             else:
                 result = subprocess.run(
-                    command, shell=True, capture_output=True, text=True, timeout=30
+                    command, shell=True, capture_output=True,
+                   check=False, text=True, timeout=30
                 )
 
             output = ""
@@ -314,31 +341,35 @@ Command:"""
         """Helper method to copy content to clipboard with system-specific commands."""
         try:
             if self.os_info["name"] == "macOS":
-                process = subprocess.run(["pbcopy"], input=content, text=True)
+                process = subprocess.run(["pbcopy"], input=content, text=True, check=False)
                 success = process.returncode == 0
             elif self.os_info["type"] == "linux":
                 # Try xclip first, then xsel
                 try:
                     process = subprocess.run(
-                        ["xclip", "-selection", "clipboard"], input=content, text=True
+                        ["xclip", "-selection", "clipboard"], input=content,
+                        text=True, check=False
                     )
                     success = process.returncode == 0
                     if not success:
                         raise Exception("xclip failed")
-                except:
+                except Exception:
                     try:
                         process = subprocess.run(
-                            ["xsel", "--clipboard", "--input"], input=content, text=True
+                            ["xsel", "--clipboard", "--input"], input=content,
+                            text=True, check=False
                         )
                         success = process.returncode == 0
                         if not success:
-                            print("❌ No clipboard tool found (install xclip or xsel)")
+                            print(
+                                "❌ No clipboard tool found (install xclip or xsel)")
                             return False
-                    except:
+                    except Exception:
                         print("❌ No clipboard tool found (install xclip or xsel)")
                         return False
             elif self.os_info["type"] == "windows":
-                process = subprocess.run(["clip"], input=content, text=True, shell=True)
+                process = subprocess.run(
+                    ["clip"], input=content, text=True, shell=True, check=False)
                 success = process.returncode == 0
             else:
                 print("❌ Clipboard not supported on this system")

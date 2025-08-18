@@ -3,6 +3,28 @@ repos:
     hooks:
       - id: pylint-score
         name: Pylint score >= 9.5
-        entry: bash .github/hooks/pre-commit
+        entry: |
+          bash -c '
+          files=("$@")
+          py_files=()
+          for f in "${files[@]}"; do
+            [[ $f == *.py ]] && py_files+=("$f")
+          done
+          if [ ${#py_files[@]} -eq 0 ]; then
+            exit 0
+          fi
+          # Run pylint with broad-exception-caught disabled
+          output=$(pylint --disable=broad-exception-caught "${py_files[@]}" || true)
+          echo "$output"
+          score=$(echo "$output" | grep -oP "rated at \K[0-9.]+(?=/10)")
+          if (( $(echo "$score < 9.5" | bc -l) )); then
+            echo "❌ Commit blocked: Pylint score ($score) < 9.5"
+            exit 1
+          else
+            echo "✅ Pylint score ($score) ≥ 9.5 — Commit allowed"
+            exit 0
+          fi
+          '
         language: system
+        pass_filenames: true
         always_run: true

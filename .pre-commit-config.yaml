@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pylint-score
+        name: Pylint score >= 9.5
+        entry: bash .github/hooks/pre-commit
+        language: system
+        always_run: true

@@ -1,4 +1,33 @@
 repos:
+  # Code formatting and import management (using local installations)
+  - repo: local
+    hooks:
+      - id: black
+        name: Black code formatter
+        entry: black
+        args: [--line-length=80]
+        language: system
+        types: [python]
+
+      - id: autoflake
+        name: Remove unused imports and variables
+        entry: autoflake
+        args:
+          - --remove-all-unused-imports
+          - --remove-unused-variables
+          - --remove-duplicate-keys
+          - --in-place
+        language: system
+        types: [python]
+
+      - id: isort
+        name: Sort imports
+        entry: isort
+        args: [--profile=black, --line-length=80]
+        language: system
+        types: [python]
+
+  # Custom pylint score check
   - repo: local
     hooks:
       - id: pylint-score

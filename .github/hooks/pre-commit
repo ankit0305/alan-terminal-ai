@@ -1,0 +1,20 @@
+#!/bin/bash
+# Run pylint before committing
+
+echo "🔎 Running pylint check..."
+
+# Run pylint and capture output
+output=$(pylint $(git ls-files '*.py') || true)
+
+# Extract the "Your code has been rated at X/10" line
+score=$(echo "$output" | grep -oP 'rated at \K[0-9.]+(?=/10)')
+
+echo "$output"
+
+if (( $(echo "$score < 9.5" | bc -l) )); then
+    echo "❌ Commit blocked: Pylint score ($score) is below 9.5"
+    exit 1
+else
+    echo "✅ Pylint score ($score) is >= 9.5 — Commit allowed"
+    exit 0
+fi

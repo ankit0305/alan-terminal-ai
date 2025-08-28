@@ -1,0 +1,16 @@
+{
+  "tracking": {
+    "enabled": true,
+    "show_confidence": true,
+    "show_similar_commands": true
+  },
+  "display": {
+    "show_system_info": true,
+    "use_emojis": true,
+    "verbose_output": false
+  },
+  "safety": {
+    "enable_safety_checks": true,
+    "prompt_for_dangerous_commands": true
+  }
+}

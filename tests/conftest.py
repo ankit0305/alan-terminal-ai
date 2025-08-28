@@ -12,14 +12,16 @@ import pytest
 
 from alan_assistant import AlanAssistant
 
-sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+)
 
 
 @pytest.fixture
 def alan():
     """Create AlanAssistant instance for testing"""
     return AlanAssistant()
+
 
 @pytest.fixture(scope="session")
 def platform_info():
@@ -54,11 +56,12 @@ def mac_commands():
         "show_processes": "ps aux",
         "disk_usage": "df -h",
         "system_info": "uname -a",
-        "network_info": "ip addr" if platform.system() == "Linux" else "ipconfig",
+        "network_info": (
+            "ip addr" if platform.system() == "Linux" else "ipconfig"
+        ),
         "pipe_command": "ls | head -5",
         "redirect_command": 'echo "test" > /tmp/test.txt',
     }
-
 
 
 @pytest.fixture
@@ -68,19 +71,46 @@ def safe_test_commands():
 
     match system:
         case "Darwin":  # Mac
-            return ['echo "Hello Mac"', "date", "whoami", "pwd", "ls /tmp", "uname -s"]
+            return [
+                'echo "Hello Mac"',
+                "date",
+                "whoami",
+                "pwd",
+                "ls /tmp",
+                "uname -s",
+            ]
         case "Windows":
-            return ['echo "Hello Windows"', "date /t", "whoami", "cd", "dir %TEMP%", "ver"]
+            return [
+                'echo "Hello Windows"',
+                "date /t",
+                "whoami",
+                "cd",
+                "dir %TEMP%",
+                "ver",
+            ]
         case _:  # Linux/Unix fallback
-            return ['echo "Hello Unix"', "date", "whoami", "pwd", "ls /tmp", "uname -s"]
-
+            return [
+                'echo "Hello Unix"',
+                "date",
+                "whoami",
+                "pwd",
+                "ls /tmp",
+                "uname -s",
+            ]
 
 
 @pytest.fixture
 def expected_help_content():
     """Expected content in help message, platform-aware"""
-    base_content = ["alan", "please", "usage",
-                    "example", "copy", "help", "version"]
+    base_content = [
+        "alan",
+        "please",
+        "usage",
+        "example",
+        "copy",
+        "help",
+        "version",
+    ]
 
     # Add platform-specific expectations if needed
     if platform.system() == "Darwin":
@@ -91,7 +121,8 @@ def expected_help_content():
 
 # Skip tests based on platform if needed
 mac_only = pytest.mark.skipif(
-    platform.system() != "Darwin", reason="Mac-only test")
+    platform.system() != "Darwin", reason="Mac-only test"
+)
 
 windows_only = pytest.mark.skipif(
     platform.system() != "Windows", reason="Windows-only test"

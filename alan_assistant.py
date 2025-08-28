@@ -6,10 +6,15 @@ import platform
 import subprocess
 import sys
 
+from command_tracker import CommandTracker
+from multi_step_operation import MultiStepOperation
+
+
 class AlanAssistant:
     """
     Alan assistant
     """
+
     def __init__(self):
         """
         init
@@ -18,6 +23,9 @@ class AlanAssistant:
         self.last_output = None
         self.clipboard_content = None
         self.os_info = self.detect_system()
+        self.multi_step_handler = MultiStepOperation(self.os_info)
+        self.command_tracker = CommandTracker()
+        self.current_tracking_id = None
 
     def detect_system(self):
         """Detect the current operating system and return relevant info."""
@@ -38,37 +46,37 @@ class AlanAssistant:
             try:
                 # Check for different package managers
                 if (
-                    subprocess.run(["which", "apt"],
-                                   capture_output=True,
-                   check=False).returncode
+                    subprocess.run(
+                        ["which", "apt"], capture_output=True, check=False
+                    ).returncode
                     == 0
                 ):
                     package_manager = "apt"
                 elif (
-                    subprocess.run(["which", "yum"],
-                                   capture_output=True,
-                   check=False).returncode
+                    subprocess.run(
+                        ["which", "yum"], capture_output=True, check=False
+                    ).returncode
                     == 0
                 ):
                     package_manager = "yum"
                 elif (
-                    subprocess.run(["which", "dnf"],
-                                   capture_output=True,
-                   check=False).returncode
+                    subprocess.run(
+                        ["which", "dnf"], capture_output=True, check=False
+                    ).returncode
                     == 0
                 ):
                     package_manager = "dnf"
                 elif (
-                    subprocess.run(["which", "pacman"],
-                                   capture_output=True,
-                   check=False).returncode
+                    subprocess.run(
+                        ["which", "pacman"], capture_output=True, check=False
+                    ).returncode
                     == 0
                 ):
                     package_manager = "pacman"
                 elif (
-                    subprocess.run(["which", "zypper"],
-                                   capture_output=True,
-                   check=False).returncode
+                    subprocess.run(
+                        ["which", "zypper"], capture_output=True, check=False
+                    ).returncode
                     == 0
                 ):
                     package_manager = "zypper"
@@ -100,8 +108,11 @@ class AlanAssistant:
         """Check if Ollama is running and accessible."""
         try:
             result = subprocess.run(
-                ["ollama", "list"], capture_output=True,
-                   check=False, text=True, timeout=10
+                ["ollama", "list"],
+                capture_output=True,
+                check=False,
+                text=True,
+                timeout=10,
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -133,7 +144,7 @@ Command:"""
             result = subprocess.run(
                 ["ollama", "generate", model, prompt],
                 capture_output=True,
-                   check=False,
+                check=False,
                 text=True,
                 timeout=30,
             )
@@ -141,14 +152,21 @@ Command:"""
             if result.returncode == 0 and result.stdout.strip():
                 command = result.stdout.strip()
                 # Clean up the response
-                lines = [line.strip()
-                         for line in command.split("\n") if line.strip()]
+                lines = [
+                    line.strip() for line in command.split("\n") if line.strip()
+                ]
                 if lines:
                     # Get the first non-empty line that looks like a command
                     for line in lines:
                         line = line.replace("`", "").strip()
                         if line and not line.startswith(
-                            ("Request:", "Command:", "Generate", "Return", "System:")
+                            (
+                                "Request:",
+                                "Command:",
+                                "Generate",
+                                "Return",
+                                "System:",
+                            )
                         ):
                             return line
                 return lines[0] if lines else None
@@ -157,20 +175,27 @@ Command:"""
             result = subprocess.run(
                 ["ollama", "run", model, prompt],
                 capture_output=True,
-                   check=False,
+                check=False,
                 text=True,
                 timeout=30,
             )
 
             if result.returncode == 0 and result.stdout.strip():
                 command = result.stdout.strip()
-                lines = [line.strip()
-                         for line in command.split("\n") if line.strip()]
+                lines = [
+                    line.strip() for line in command.split("\n") if line.strip()
+                ]
                 if lines:
                     for line in lines:
                         line = line.replace("`", "").strip()
                         if line and not line.startswith(
-                            ("Request:", "Command:", "Generate", "Return", "System:")
+                            (
+                                "Request:",
+                                "Command:",
+                                "Generate",
+                                "Return",
+                                "System:",
+                            )
                         ):
                             return line
                 return lines[0] if lines else None
@@ -223,6 +248,40 @@ Command:"""
                 return False
         return True
 
+    def handle_multistep_request(self, user_request):
+        """Handle multistep operations based on user request."""
+        # Check if this is a multistep operation
+        if self.multi_step_handler.detect_multistep_operation(user_request):
+            print("🔍 Detected multistep operation")
+
+            # Parse the request into steps
+            steps = self.multi_step_handler.parse_multistep_request(
+                user_request
+            )
+
+            if not steps:
+                print("⚠️  Could not parse multistep operation")
+                return False
+
+            print(f"📋 Parsed into {len(steps)} steps:")
+            for i, step in enumerate(steps, 1):
+                print(f"  {i}. {step['description']}")
+
+            print()
+
+            # Execute the multistep operation
+            success = self.multi_step_handler.execute_multistep_operation(steps)
+
+            if success:
+                # Update last output with operation summary
+                self.last_output = (
+                    self.multi_step_handler.get_operation_summary()
+                )
+
+            return success
+
+        return False
+
     def execute_command(self, command):
         """Execute the command safely with system-specific handling."""
         try:
@@ -230,14 +289,22 @@ Command:"""
             if self.os_info["type"] == "windows":
                 # On Windows, use shell=True with cmd
                 result = subprocess.run(
-                    command, shell=True, capture_output=True,
-                   check=False, text=True, timeout=30
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                    timeout=30,
                 )
             else:
                 # On Unix-like systems
                 result = subprocess.run(
-                    command, shell=True, capture_output=True,
-                   check=False, text=True, timeout=30
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                    timeout=30,
                 )
 
             output = ""
@@ -271,7 +338,8 @@ Command:"""
                 if not lines:
                     print("❌ No output found in output.txt")
                     print(
-                        "💡 Usage: 'alan copy [command]' to run and copy a command")
+                        "💡 Usage: 'alan copy [command]' to run and copy a command"
+                    )
                     return False
 
                 # Get the last non-empty line
@@ -286,7 +354,9 @@ Command:"""
                     print("❌ No non-empty output found in output.txt")
                     return False
 
-                return self._copy_to_clipboard(last_line, "Last output from file")
+                return self._copy_to_clipboard(
+                    last_line, "Last output from file"
+                )
 
             except FileNotFoundError:
                 print("❌ output.txt file not found")
@@ -305,13 +375,21 @@ Command:"""
         try:
             if self.os_info["type"] == "windows":
                 result = subprocess.run(
-                    command, shell=True, capture_output=True,
-                   check=False, text=True, timeout=30
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                    timeout=30,
                 )
             else:
                 result = subprocess.run(
-                    command, shell=True, capture_output=True,
-                   check=False, text=True, timeout=30
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                    timeout=30,
                 )
 
             output = ""
@@ -341,14 +419,18 @@ Command:"""
         """Helper method to copy content to clipboard with system-specific commands."""
         try:
             if self.os_info["name"] == "macOS":
-                process = subprocess.run(["pbcopy"], input=content, text=True, check=False)
+                process = subprocess.run(
+                    ["pbcopy"], input=content, text=True, check=False
+                )
                 success = process.returncode == 0
             elif self.os_info["type"] == "linux":
                 # Try xclip first, then xsel
                 try:
                     process = subprocess.run(
-                        ["xclip", "-selection", "clipboard"], input=content,
-                        text=True, check=False
+                        ["xclip", "-selection", "clipboard"],
+                        input=content,
+                        text=True,
+                        check=False,
                     )
                     success = process.returncode == 0
                     if not success:
@@ -356,20 +438,26 @@ Command:"""
                 except Exception:
                     try:
                         process = subprocess.run(
-                            ["xsel", "--clipboard", "--input"], input=content,
-                            text=True, check=False
+                            ["xsel", "--clipboard", "--input"],
+                            input=content,
+                            text=True,
+                            check=False,
                         )
                         success = process.returncode == 0
                         if not success:
                             print(
-                                "❌ No clipboard tool found (install xclip or xsel)")
+                                "❌ No clipboard tool found (install xclip or xsel)"
+                            )
                             return False
                     except Exception:
-                        print("❌ No clipboard tool found (install xclip or xsel)")
+                        print(
+                            "❌ No clipboard tool found (install xclip or xsel)"
+                        )
                         return False
             elif self.os_info["type"] == "windows":
                 process = subprocess.run(
-                    ["clip"], input=content, text=True, shell=True, check=False)
+                    ["clip"], input=content, text=True, shell=True, check=False
+                )
                 success = process.returncode == 0
             else:
                 print("❌ Clipboard not supported on this system")
@@ -386,6 +474,100 @@ Command:"""
             print(f"❌ Clipboard error: {e}")
             return False
 
+    def track_command_suggestion(
+        self, user_request: str, suggested_command: str, model_used: str
+    ) -> str:
+        """
+        Track a command suggestion for analysis
+
+        Args:
+            user_request: The original user request
+            suggested_command: The command suggested by the AI
+            model_used: The AI model that generated the suggestion
+
+        Returns:
+            Tracking ID for this suggestion
+        """
+        tracking_id = self.command_tracker.track_suggestion(
+            user_request, suggested_command, model_used, self.os_info
+        )
+        self.current_tracking_id = tracking_id
+        return tracking_id
+
+    def track_user_decision(self, accepted: bool, user_feedback: str = None):
+        """
+        Track the user's decision on the current command suggestion
+
+        Args:
+            accepted: Whether the user accepted the command
+            user_feedback: Optional feedback from the user
+        """
+        if self.current_tracking_id:
+            self.command_tracker.track_user_decision(
+                self.current_tracking_id, accepted, user_feedback
+            )
+
+    def track_execution_result(self, success: bool, output: str = None):
+        """
+        Track the execution result of the current command
+
+        Args:
+            success: Whether the command executed successfully
+            output: The command output (optional)
+        """
+        if self.current_tracking_id:
+            self.command_tracker.track_execution_result(
+                self.current_tracking_id, success, output
+            )
+
+    def get_command_insights(
+        self, user_request: str, suggested_command: str
+    ) -> dict:
+        """
+        Get insights and improvements for a command suggestion
+
+        Args:
+            user_request: The current user request
+            suggested_command: The currently suggested command
+
+        Returns:
+            Dictionary with insights and recommendations
+        """
+        return self.command_tracker.get_suggestion_improvements(
+            user_request, suggested_command
+        )
+
+    def show_tracking_statistics(self):
+        """Show command tracking statistics and insights"""
+        stats = self.command_tracker.get_statistics()
+        insights = self.command_tracker.get_insights()
+
+        print("\n📊 Command Tracking Statistics")
+        print("=" * 40)
+        print(f"Total suggestions: {stats['total_suggestions']}")
+        print(f"Accepted: {stats['total_accepted']}")
+        print(f"Rejected: {stats['total_rejected']}")
+        print(f"Acceptance rate: {stats['acceptance_rate']:.1f}%")
+
+        if "recent_activity" in stats:
+            recent = stats["recent_activity"]
+            print(f"\nRecent activity (7 days):")
+            print(f"  Suggestions: {recent['total_suggestions']}")
+            print(f"  Accepted: {recent['accepted']}")
+            print(f"  Rejected: {recent['rejected']}")
+
+        if "top_command_types" in stats and stats["top_command_types"]:
+            print(f"\nMost used commands:")
+            for cmd_type, count in list(stats["top_command_types"].items())[:3]:
+                print(f"  {cmd_type}: {count} times")
+
+        if insights:
+            print(f"\n💡 Insights:")
+            for insight in insights:
+                print(f"  {insight}")
+
+        print("=" * 40)
+
     def show_help(self):
         """Show help message with system-specific information."""
         help_text = f"""
@@ -398,6 +580,7 @@ Usage:
 alan please [your request]        Generate and run AI-suggested commands
 alan copy                         Copy last Alan command output
 alan copy [command]               Run command and copy its output
+alan stats                        Show command tracking statistics
 
 Examples:
 alan please list directory files
@@ -414,7 +597,9 @@ alan copy ls -la                  # Run 'ls -la' and copy output
 Options:
 alan --help    Show this help message
 alan --version Show version information
+alan stats     Show command acceptance statistics
 
 Note: Commands will be generated specifically for your {self.os_info['name']} system.
+Alan learns from your command preferences to improve suggestions over time.
         """
         print(help_text)

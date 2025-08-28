@@ -10,8 +10,9 @@ from io import StringIO
 
 from alan_assistant import AlanAssistant
 
-sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+)
 
 
 class TestShowHelpReal:
@@ -50,8 +51,9 @@ class TestShowHelpReal:
             help_text = captured_output.getvalue()
 
             lines = help_text.strip().split("\n")
-            assert len(
-                lines) >= 3, "Help should have multiple lines of information"
+            assert (
+                len(lines) >= 3
+            ), "Help should have multiple lines of information"
 
         finally:
             sys.stdout = old_stdout
@@ -70,7 +72,9 @@ class TestExecuteCommandReal:
         try:
             success = alan.execute_command("ls")
             captured_output.getvalue()
-            assert success is not False, "ls command should execute successfully"
+            assert (
+                success is not False
+            ), "ls command should execute successfully"
 
         finally:
             sys.stdout = old_stdout
@@ -97,8 +101,9 @@ def run_real_tests():
 
         for test_method in test_methods:
             total_tests += 1
-            test_name = test_method.replace(
-                "test_", "").replace("_", " ").title()
+            test_name = (
+                test_method.replace("test_", "").replace("_", " ").title()
+            )
 
             try:
                 test_instance = test_class()
@@ -110,7 +115,8 @@ def run_real_tests():
             except Exception as e:
                 print(f"  ❌ {test_name}: {str(e)}")
                 failed_tests.append(
-                    f"{test_class.__name__}.{test_method}: {str(e)}")
+                    f"{test_class.__name__}.{test_method}: {str(e)}"
+                )
 
     print("\n" + "=" * 60)
     print(f"📊 Test Results: {passed_tests}/{total_tests} passed")

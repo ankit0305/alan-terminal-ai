@@ -128,7 +128,9 @@ def main():
     # Get insights for this command
     insights = alan.get_command_insights(user_request, suggested_command)
 
-    print(f"💡 Suggested ({alan.os_info['name']}): {suggested_command}")
+    print(
+        f"\033[1;37;44m💡 Suggested ({alan.os_info['name']}): {suggested_command}\033[0m"
+    )
 
     # Show confidence score if available
     if insights["confidence_score"] != 0.5:  # Not default

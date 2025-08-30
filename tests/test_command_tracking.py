@@ -7,7 +7,7 @@ import os
 import sys
 
 from alan_assistant import AlanAssistant
-from command_tracker import CommandTracker
+from tracker.command_tracker import CommandTracker
 
 
 def test_command_tracker():

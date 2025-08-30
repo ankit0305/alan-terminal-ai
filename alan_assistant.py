@@ -6,8 +6,8 @@ import platform
 import subprocess
 import sys
 
-from command_tracker import CommandTracker
-from multi_step_operation import MultiStepOperation
+from multi_step.multi_step_operation import MultiStepOperation
+from tracker.command_tracker import CommandTracker
 
 
 class AlanAssistant:
